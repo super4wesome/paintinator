@@ -19,12 +19,16 @@ const int HOMING_START_POSITION = 0;
 
 bool constant_speed = false;
 bool spraying = false;
+char previous_cmd = '.';
 
 // -------------------------------------------------------------
 const int SPRAY_SERVO_PIN = 12;
 const int SERVO_SPRAY_POSITION = 120;
 const int SERVO_RELAX_POSITION = 180;
 Servo spray_servo;
+
+// -------------------------------------------------------------
+const int LED_BOARD_PIN = 13;
 
 // -------------------------------------------------------------
 
@@ -51,6 +55,8 @@ void setupSteppers() {
 
     spray_servo.attach(SPRAY_SERVO_PIN);
     spray_servo.write(SERVO_RELAX_POSITION);
+
+    pinMode(LED_BOARD_PIN, OUTPUT);
   }
 }
 
@@ -64,20 +70,32 @@ void runAllSteppers(bool constant_speed = true) {
   }
 }
 
+bool running() {
+  for (int i = 0; i < NUM_STEPPERS; ++i) {
+    if (steppers[i].isRunning()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void stopAllSteppers() {
   for (int i = 0; i < NUM_STEPPERS; ++i) {
      steppers[i].setSpeed(0);
      steppers[i].runSpeed();
+     steppers[i].moveTo(steppers[i].currentPosition());
+     steppers[i].move(0);
   }
+  ledStandby();
 }
 
 void homeAllSteppers() {
+  ledRolling();
   for (int i = 0; i < NUM_STEPPERS; ++i) {
      if (steppers[i].currentPosition() == HOMING_START_POSITION) {
       continue;
      }
      steppers[i].moveTo(HOMING_START_POSITION);
-     steppers[i].setSpeed(HOMING_SPEED);
   }
 }
 
@@ -93,8 +111,14 @@ void printPositions() {
   }
 }
 
+void printGoals() {
+  for (int i = 0; i < NUM_STEPPERS; ++i) {
+    Serial.println("Motor " + String(i) + " goal: " + String(steppers[i].targetPosition()));
+  }
+}
+
 bool charInputIs(char c) {
-  delay(1);
+  //delay(1);
   if (Serial.available()) {
     return (Serial.read() == c);
   }
@@ -111,6 +135,7 @@ bool sprayToggleRequested() {
 
 // Returns false if stopped before reaching goal.
 bool moveToPosition(long position_0, long position_1) {
+  ledRolling();
   steppers[0].moveTo(position_0);
   steppers[0].setSpeed(HOMING_SPEED);
   steppers[1].moveTo(position_1);
@@ -138,6 +163,7 @@ void runSequence(long positions[][2], int num_positions) {
       break;
     }
   }
+  ledStandby();
 }
 
 void toggleSprayer() {
@@ -149,6 +175,16 @@ void toggleSprayer() {
     Serial.println("Not spraying!");
     spray_servo.write(SERVO_RELAX_POSITION);
   }
+}
+
+void ledStandby() {
+  //Serial.println("LEDs set to Standby");
+  digitalWrite(LED_BOARD_PIN, LOW);
+}
+
+void ledRolling() {
+  //Serial.println("LEDs set to Rolling");
+  digitalWrite(LED_BOARD_PIN, HIGH);
 }
 
 void setup() {
@@ -164,25 +200,32 @@ void loop() {
       case '0': stopAllSteppers(); break;
       case 'h': stopAllSteppers(); homeAllSteppers(); break;
       case 'p': printPositions(); break;
+      case 'g': printGoals(); break;
       case 'x': toggleSprayer(); break;
       case 'r': runSequence(seq_test, sizeof(seq_test)/sizeof(seq_test[0])); break;
       // big steps
-      case 'W': steppers[0].setSpeed(steppers[0].speed() + 100 * FACTOR); break;
-      case 'S': steppers[0].setSpeed(steppers[0].speed() - 100 * FACTOR); break;
-      case 'O': steppers[1].setSpeed(steppers[1].speed() + 100 * FACTOR); break;
-      case 'L': steppers[1].setSpeed(steppers[1].speed() - 100 * FACTOR); break;
+      case 'W': steppers[0].setSpeed(steppers[0].speed() + 100 * FACTOR); ledRolling(); break;
+      case 'S': steppers[0].setSpeed(steppers[0].speed() - 100 * FACTOR); ledRolling(); break;
+      case 'O': steppers[1].setSpeed(steppers[1].speed() + 100 * FACTOR); ledRolling(); break;
+      case 'L': steppers[1].setSpeed(steppers[1].speed() - 100 * FACTOR); ledRolling(); break;
       // small steps
-      case 'w': steppers[0].setSpeed(steppers[0].speed() + 10 * FACTOR); break;
-      case 's': steppers[0].setSpeed(steppers[0].speed() - 10 * FACTOR); break;
-      case 'o': steppers[1].setSpeed(steppers[1].speed() + 10 * FACTOR); break;
-      case 'l': steppers[1].setSpeed(steppers[1].speed() - 10 * FACTOR); break;
+      case 'w': steppers[0].setSpeed(steppers[0].speed() + 10 * FACTOR); ledRolling(); break;
+      case 's': steppers[0].setSpeed(steppers[0].speed() - 10 * FACTOR); ledRolling(); break;
+      case 'o': steppers[1].setSpeed(steppers[1].speed() + 10 * FACTOR); ledRolling(); break;
+      case 'l': steppers[1].setSpeed(steppers[1].speed() - 10 * FACTOR); ledRolling(); break;
       default: break;
     }
-    bool homing = (cmd == 'h');
+    previous_cmd = cmd;
+    bool homing = (cmd == 'h' || previous_cmd == 'h');
     if (cmd != 'p') {
       constant_speed = !homing;
       printSpeeds();
     }
   }
   runAllSteppers(constant_speed);
+  if (running() || spraying) {
+    ledRolling();
+  } else {
+    ledStandby();
+  }
 }
