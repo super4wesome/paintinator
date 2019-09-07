@@ -13,7 +13,7 @@ const int FULL_PULSES_PER_ROT = 200;
 const int PULSES_PER_ROT = FULL_PULSES_PER_ROT * FACTOR / 2;
 const int ACCELERATION = PULSES_PER_ROT * 5;
 const int MAX_SPEED = PULSES_PER_ROT * 8;
-const int HOMING_SPEED = PULSES_PER_ROT * 5;
+const int HOMING_SPEED = PULSES_PER_ROT * 8;
 const int MINIMUM_PULSE_WIDTH = 100;
 const int HOMING_START_POSITION = 0;
 
@@ -22,7 +22,7 @@ bool spraying = false;
 
 // -------------------------------------------------------------
 const int SPRAY_SERVO_PIN = 12;
-const int SERVO_SPRAY_POSITION = 0;
+const int SERVO_SPRAY_POSITION = 120;
 const int SERVO_RELAX_POSITION = 180;
 Servo spray_servo;
 
@@ -50,6 +50,7 @@ void setupSteppers() {
     steppers[i].setSpeed(0);
 
     spray_servo.attach(SPRAY_SERVO_PIN);
+    spray_servo.write(SERVO_RELAX_POSITION);
   }
 }
 
@@ -93,7 +94,7 @@ void printPositions() {
 }
 
 bool charInputIs(char c) {
-  delay(10);
+  delay(1);
   if (Serial.available()) {
     return (Serial.read() == c);
   }
@@ -111,11 +112,14 @@ bool sprayToggleRequested() {
 // Returns false if stopped before reaching goal.
 bool moveToPosition(long position_0, long position_1) {
   steppers[0].moveTo(position_0);
+  steppers[0].setSpeed(HOMING_SPEED);
   steppers[1].moveTo(position_1);
+  steppers[1].setSpeed(HOMING_SPEED);
   while (steppers[0].currentPosition() != position_0
       && steppers[1].currentPosition() != position_1) {
    if (stopRequested()) {
     Serial.println("Stop requested!");
+    stopAllSteppers();
     break;
    }
    if (sprayToggleRequested()) {
