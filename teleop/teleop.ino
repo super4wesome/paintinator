@@ -26,19 +26,16 @@ const int SERVO_SPRAY_POSITION = 0;
 const int SERVO_RELAX_POSITION = 180;
 Servo spray_servo;
 
-long seq_test_0[] = {
-  5000,
-  10000,
-  15000,
-  20000
+// -------------------------------------------------------------
+
+long seq_test[][2] = {
+  {5000, 5000},
+  {10000, 10000},
+  {15000, 15000},
+  {20000, 20000},
 };
 
-long seq_test_1[] = {
-  1000,
-  2000,
-  3000,
-  4000
-};
+// -------------------------------------------------------------
 
 void setupSteppers() {
   for (int i = 0; i < NUM_STEPPERS; ++i) {    
@@ -106,9 +103,9 @@ void moveToPosition(long position_0, long position_1) {
   stopAllSteppers();
 }
 
-void runSequence(long positions_0[], long positions_1[], int num_positions) {
+void runSequence(long positions[][2], int num_positions) {
   for (int i = 0; i < num_positions; ++i) {
-    moveToPosition(positions_0[i], positions_1[i]);
+    moveToPosition(positions[i][0], positions[i][0]);
   }
 }
 
@@ -137,7 +134,7 @@ void loop() {
       case 'h': stopAllSteppers(); homeAllSteppers(); break;
       case 'p': printPositions(); break;
       case 'x': toggleSprayer(); break;
-      case 'r': runSequence(seq_test_0, seq_test_1, sizeof(seq_test_0)); break;
+      case 'r': runSequence(seq_test, sizeof(seq_test)); break;
       // big steps
       case 'W': steppers[0].setSpeed(steppers[0].speed() + 100 * FACTOR); break;
       case 'S': steppers[0].setSpeed(steppers[0].speed() - 100 * FACTOR); break;
