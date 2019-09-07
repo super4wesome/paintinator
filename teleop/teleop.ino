@@ -92,20 +92,47 @@ void printPositions() {
   }
 }
 
-void moveToPosition(long position_0, long position_1) {
+bool charInputIs(char c) {
+  delay(5);
+  if (Serial.available()) {
+    return (Serial.read() == c);
+  }
+  return false;
+}
+
+bool stopRequested() {
+  return charInputIs('0');
+}
+
+bool sprayToggleRequested() {
+  return charInputIs('x');
+}
+
+// Returns false if stopped before reaching goal.
+bool moveToPosition(long position_0, long position_1) {
   steppers[0].moveTo(position_0);
   steppers[1].moveTo(position_1);
-  while (Serial.read() != '0'
-         && steppers[0].currentPosition() != position_0
-         && steppers[1].currentPosition() != position_1) {
-   runAllSteppers(true); 
+  while (steppers[0].currentPosition() != position_0
+      && steppers[1].currentPosition() != position_1) {
+   if (stopRequested()) {
+    Serial.println("Stop requested!");
+    break;
+   }
+   if (sprayToggleRequested()) {
+    toggleSprayer();
+   }
+   runAllSteppers(true);
   }
   stopAllSteppers();
 }
 
 void runSequence(long positions[][2], int num_positions) {
+  Serial.println("Starting sequence");
   for (int i = 0; i < num_positions; ++i) {
-    moveToPosition(positions[i][0], positions[i][0]);
+    Serial.println("Moving to " + String(positions[i][0]) + " " + String(positions[i][1]));
+    if (!moveToPosition(positions[i][0], positions[i][1])) {
+      break;
+    }
   }
 }
 
@@ -134,7 +161,7 @@ void loop() {
       case 'h': stopAllSteppers(); homeAllSteppers(); break;
       case 'p': printPositions(); break;
       case 'x': toggleSprayer(); break;
-      case 'r': runSequence(seq_test, sizeof(seq_test)); break;
+      case 'r': runSequence(seq_test, sizeof(seq_test)/sizeof(seq_test[0])); break;
       // big steps
       case 'W': steppers[0].setSpeed(steppers[0].speed() + 100 * FACTOR); break;
       case 'S': steppers[0].setSpeed(steppers[0].speed() - 100 * FACTOR); break;
