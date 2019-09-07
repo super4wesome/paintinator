@@ -34,10 +34,10 @@ void setup() {
 }
 
 void loop() {  
-  if (!steppers[0].run()) {
-    steppers[0].moveTo(-steppers[0].targetPosition());
-  }
-  if (!steppers[1].run()) {
-    steppers[1].moveTo(-steppers[1].targetPosition());
+  // sweep back and forth
+  for (int i = 0; i < num_steppers; ++i) {
+    if (!steppers[i].run() /* if at target position */) {
+      steppers[i].moveTo(-steppers[i].targetPosition());
+    }
   }
 }
