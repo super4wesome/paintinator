@@ -9,13 +9,14 @@ AccelStepper steppers[] = {
 const int FACTOR = 16;
 const int FULL_PULSES_PER_ROT = 200;
 const int PULSES_PER_ROT = FULL_PULSES_PER_ROT * FACTOR / 2;
-const int ACCELERATION = PULSES_PER_ROT * 2;
+const int ACCELERATION = PULSES_PER_ROT * 5;
 const int MAX_SPEED = PULSES_PER_ROT * 8;
 const int HOMING_SPEED = PULSES_PER_ROT * 5;
 const int MIN_PULSE_WIDTH = 100;
 const int HOMING_START_POSITION = 0;
 
 bool constant_speed = false;
+bool spraying = false;
 
 void setupSteppers() {
   for (int i = 0; i < NUM_STEPPERS; ++i) {    
@@ -70,6 +71,17 @@ void printPositions() {
   }
 }
 
+void toggleSprayer() {
+  spraying = !spraying;
+  if (spraying) {
+    // relax servo
+    Serial.println("Spraying!");
+  } else {
+    // pull servo
+    Serial.println("Not spraying!");
+  }
+}
+
 void setup() {
   setupSteppers();
   Serial.begin(9600);
@@ -83,6 +95,7 @@ void loop() {
       case '0': stopAllSteppers(); break;
       case 'h': stopAllSteppers(); homeAllSteppers(); break;
       case 'p': printPositions(); break;
+      case 'x': toggleSprayer(); break;
       // big steps
       case 'W': steppers[0].setSpeed(steppers[0].speed() + 100 * FACTOR); break;
       case 'S': steppers[0].setSpeed(steppers[0].speed() - 100 * FACTOR); break;
