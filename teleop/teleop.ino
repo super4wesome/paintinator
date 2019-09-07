@@ -4,8 +4,8 @@
 // -------------------------------------------------------------
 const int NUM_STEPPERS = 2;
 AccelStepper steppers[] = {
-  AccelStepper(AccelStepper::DRIVER, 3 /* CW+ */, 2 /* CLK+ */),
-  AccelStepper(AccelStepper::DRIVER, 5 /* CW+ */, 4 /* CLK+ */)
+  AccelStepper(AccelStepper::DRIVER, 2 /* CLK+ */, 3 /* CW+ */),
+  AccelStepper(AccelStepper::DRIVER, 4 /* CLK+ */, 5 /* CW+ */)
 };
 
 const int FACTOR = 16;
@@ -93,7 +93,7 @@ void printPositions() {
 }
 
 bool charInputIs(char c) {
-  delay(5);
+  delay(10);
   if (Serial.available()) {
     return (Serial.read() == c);
   }
