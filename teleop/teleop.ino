@@ -1,5 +1,7 @@
 #include <AccelStepper.h>
+#include <Servo.h>
 
+// -------------------------------------------------------------
 const int NUM_STEPPERS = 2;
 AccelStepper steppers[] = {
   AccelStepper(AccelStepper::DRIVER, 3 /* CW+ */, 2 /* CLK+ */),
@@ -12,16 +14,23 @@ const int PULSES_PER_ROT = FULL_PULSES_PER_ROT * FACTOR / 2;
 const int ACCELERATION = PULSES_PER_ROT * 5;
 const int MAX_SPEED = PULSES_PER_ROT * 8;
 const int HOMING_SPEED = PULSES_PER_ROT * 5;
-const int MIN_PULSE_WIDTH = 100;
+const int MINIMUM_PULSE_WIDTH = 100;
 const int HOMING_START_POSITION = 0;
 
 bool constant_speed = false;
 bool spraying = false;
 
+// -------------------------------------------------------------
+const int SPRAY_SERVO_PIN = 12;
+const int SERVO_SPRAY_POSITION = 0;
+const int SERVO_RELAX_POSITION = 180;
+Servo spray_servo;
+
+
 void setupSteppers() {
   for (int i = 0; i < NUM_STEPPERS; ++i) {    
     steppers[i].setMaxSpeed(MAX_SPEED);
-    steppers[i].setMinPulseWidth(MIN_PULSE_WIDTH);
+    steppers[i].setMinPulseWidth(MINIMUM_PULSE_WIDTH);
     steppers[i].setAcceleration(ACCELERATION);
   
     // homing reset
@@ -29,6 +38,8 @@ void setupSteppers() {
   
     // TODO
     steppers[i].setSpeed(0);
+
+    spray_servo.attach(SPRAY_SERVO_PIN);
   }
 }
 
@@ -71,14 +82,31 @@ void printPositions() {
   }
 }
 
+void moveToPosition(long position_0, long position_1) {
+  steppers[0].moveTo(position_0);
+  steppers[1].moveTo(position_1);
+  while (Serial.read() != '0'
+         && steppers[0].currentPosition() != position_0
+         && steppers[1].currentPosition() != position_1) {
+   runAllSteppers(true); 
+  }
+  stopAllSteppers();
+}
+
+void runSequence(long positions_0[], long positions_1[], int num_positions) {
+  for (int i = 0; i < num_positions; ++i) {
+    moveToPosition(positions_0[i], positions_1[i]);
+  }
+}
+
 void toggleSprayer() {
   spraying = !spraying;
   if (spraying) {
-    // relax servo
     Serial.println("Spraying!");
+    spray_servo.write(SERVO_SPRAY_POSITION);
   } else {
-    // pull servo
     Serial.println("Not spraying!");
+    spray_servo.write(SERVO_RELAX_POSITION);
   }
 }
 
@@ -111,8 +139,8 @@ void loop() {
     bool homing = (cmd == 'h');
     if (cmd != 'p') {
       constant_speed = !homing;
+      printSpeeds();
     }
-    printSpeeds();
   }
   runAllSteppers(constant_speed);
 }
