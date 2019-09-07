@@ -11,7 +11,7 @@ const int FULL_PULSES_PER_ROT = 200;
 const int PULSES_PER_ROT = FULL_PULSES_PER_ROT * FACTOR / 2;
 const int ACCELERATION = PULSES_PER_ROT * 2;
 const int MAX_SPEED = PULSES_PER_ROT * 8;
-const int TEST_SPEED = PULSES_PER_ROT * 2;
+const int HOMING_SPEED = PULSES_PER_ROT * 5;
 const int MIN_PULSE_WIDTH = 100;
 const int HOMING_START_POSITION = 0;
 
@@ -50,14 +50,23 @@ void stopAllSteppers() {
 
 void homeAllSteppers() {
   for (int i = 0; i < NUM_STEPPERS; ++i) {
+     if (steppers[i].currentPosition() == HOMING_START_POSITION) {
+      continue;
+     }
      steppers[i].moveTo(HOMING_START_POSITION);
-     steppers[i].setSpeed(TEST_SPEED);
+     steppers[i].setSpeed(HOMING_SPEED);
   }
 }
 
 void printSpeeds() {
   for (int i = 0; i < NUM_STEPPERS; ++i) {
     Serial.println("Motor " + String(i) + " speed: " + String(steppers[i].speed()));
+  }
+}
+
+void printPositions() {
+  for (int i = 0; i < NUM_STEPPERS; ++i) {
+    Serial.println("Motor " + String(i) + " position: " + String(steppers[i].currentPosition()));
   }
 }
 
@@ -73,6 +82,7 @@ void loop() {
     switch (cmd) {
       case '0': stopAllSteppers(); break;
       case 'h': stopAllSteppers(); homeAllSteppers(); break;
+      case 'p': printPositions(); break;
       // big steps
       case 'W': steppers[0].setSpeed(steppers[0].speed() + 100 * FACTOR); break;
       case 'S': steppers[0].setSpeed(steppers[0].speed() - 100 * FACTOR); break;
@@ -86,7 +96,9 @@ void loop() {
       default: break;
     }
     bool homing = (cmd == 'h');
-    constant_speed = !homing;
+    if (cmd != 'p') {
+      constant_speed = !homing;
+    }
     printSpeeds();
   }
   runAllSteppers(constant_speed);
