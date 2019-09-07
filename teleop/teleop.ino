@@ -145,7 +145,7 @@ bool moveToPosition(long position_0, long position_1) {
    if (stopRequested()) {
     Serial.println("Stop requested!");
     stopAllSteppers();
-    break;
+    return false;
    }
    if (sprayToggleRequested()) {
     toggleSprayer();
@@ -153,6 +153,7 @@ bool moveToPosition(long position_0, long position_1) {
    runAllSteppers(true);
   }
   stopAllSteppers();
+  return true;
 }
 
 void runSequence(long positions[][2], int num_positions) {
