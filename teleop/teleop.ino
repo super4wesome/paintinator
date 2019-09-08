@@ -33,10 +33,11 @@ const int LED_BOARD_PIN = 13;
 // -------------------------------------------------------------
 
 long seq_test[][2] = {
-  {5000, 5000},
-  {10000, 10000},
-  {15000, 15000},
-  {20000, 20000},
+  {0, 0},
+  {-10000, 10000},
+  {-1000, 20000},
+  {12000, 8000},
+  {0, 0}
 };
 
 // -------------------------------------------------------------
@@ -137,20 +138,21 @@ bool sprayToggleRequested() {
 bool moveToPosition(long position_0, long position_1) {
   ledRolling();
   steppers[0].moveTo(position_0);
-  steppers[0].setSpeed(HOMING_SPEED);
+  //steppers[0].setSpeed(HOMING_SPEED);
   steppers[1].moveTo(position_1);
-  steppers[1].setSpeed(HOMING_SPEED);
+  //steppers[1].setSpeed(HOMING_SPEED);
   while (steppers[0].currentPosition() != position_0
       && steppers[1].currentPosition() != position_1) {
    if (stopRequested()) {
     Serial.println("Stop requested!");
+    previous_cmd = 's';
     stopAllSteppers();
     return false;
    }
    if (sprayToggleRequested()) {
     toggleSprayer();
    }
-   runAllSteppers(true);
+   runAllSteppers(false);
   }
   stopAllSteppers();
   return true;
@@ -165,6 +167,11 @@ void runSequence(long positions[][2], int num_positions) {
     }
   }
   ledStandby();
+}
+
+void runTestSequence() {
+  // #hackerman
+  runSequence(seq_test, sizeof(seq_test)/sizeof(seq_test[0]));
 }
 
 void toggleSprayer() {
@@ -195,6 +202,9 @@ void setup() {
 }
 
 void loop() {
+  if (previous_cmd == 'r') {
+    runSequence(seq_test, sizeof(seq_test)/sizeof(seq_test[0]));
+  }
   if (Serial.available()) {
     char cmd = Serial.read();
     switch (cmd) {
@@ -203,15 +213,15 @@ void loop() {
       case 'p': printPositions(); break;
       case 'g': printGoals(); break;
       case 'x': toggleSprayer(); break;
-      case 'r': runSequence(seq_test, sizeof(seq_test)/sizeof(seq_test[0])); break;
+      case 'r': runTestSequence(); break;
       // big steps
-      case 'W': steppers[0].setSpeed(steppers[0].speed() + 100 * FACTOR); ledRolling(); break;
-      case 'S': steppers[0].setSpeed(steppers[0].speed() - 100 * FACTOR); ledRolling(); break;
+      case 'W': steppers[0].setSpeed(steppers[0].speed() - 100 * FACTOR); ledRolling(); break;
+      case 'S': steppers[0].setSpeed(steppers[0].speed() + 100 * FACTOR); ledRolling(); break;
       case 'O': steppers[1].setSpeed(steppers[1].speed() + 100 * FACTOR); ledRolling(); break;
       case 'L': steppers[1].setSpeed(steppers[1].speed() - 100 * FACTOR); ledRolling(); break;
       // small steps
-      case 'w': steppers[0].setSpeed(steppers[0].speed() + 10 * FACTOR); ledRolling(); break;
-      case 's': steppers[0].setSpeed(steppers[0].speed() - 10 * FACTOR); ledRolling(); break;
+      case 'w': steppers[0].setSpeed(steppers[0].speed() - 10 * FACTOR); ledRolling(); break;
+      case 's': steppers[0].setSpeed(steppers[0].speed() + 10 * FACTOR); ledRolling(); break;
       case 'o': steppers[1].setSpeed(steppers[1].speed() + 10 * FACTOR); ledRolling(); break;
       case 'l': steppers[1].setSpeed(steppers[1].speed() - 10 * FACTOR); ledRolling(); break;
       default: break;
